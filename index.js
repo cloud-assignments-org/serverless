@@ -11,20 +11,27 @@ functions.cloudEvent('triggerUserVerificationEmail', cloudEvent => {
   // console.log(`Hello, ${username}!`);
 
   // console.log("Mailchimp api key ", process.env.MAILCHIMP_API_KEY);
-  process.env.MAILCHIMP_API_KEY = "md-yz6F3wdSdOFqPdtTPVQFLQ";
+  // process.env.MAILCHIMP_API_KEY = "md-yz6F3wdSdOFqPdtTPVQFLQ";
 
   const mailchimpClient = require("@mailchimp/mailchimp_transactional")(
     process.env.MAILCHIMP_API_KEY
   );
 
-  const protocol = "https"
-  const domain = "parthadhruv.com";
-  const port = 3000;
-  const verifyEndPoint = "user/verifyEmail";
-  const base = `${protocol}://${domain}:${port}`;
-  const setValidityEndPoint = "user/setValidity";
-  const validityMinutes = 2;
+  // const protocol = "https"
+  // const domain = "parthadhruv.com";
+  // const port = 3000;
+  // const verifyEndPoint = "user/verifyEmail";
+  // const setValidityEndPoint = "user/setValidity";
+  // const validityMinutes = 2;
   
+  const protocol = process.env.PROTOCOL
+  const domain = process.env.DOMAIN;
+  const port = process.env.API_PORT;
+  const verifyEndPoint = process.env.VERIFY_END_POINT;
+  const setValidityEndPoint = process.env.SET_VALIDITY_END_POINT;
+  const validityMinutes = process.env.VALIDITY_MINUTES;
+
+  const base = `${protocol}://${domain}:${port}`;
   const url = `${base}/${verifyEndPoint}?username=${username}`;
 
   const html = `<div>
