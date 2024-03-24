@@ -3,35 +3,26 @@ const functions = require('@google-cloud/functions-framework');
 // Register a CloudEvent callback with the Functions Framework that will
 // be executed when the Pub/Sub trigger topic receives a message.
 functions.cloudEvent('triggerUserVerificationEmail', cloudEvent => {
-  // The Pub/Sub message is passed as the CloudEvent's data payload.
-  // const base64Data = cloudEvent.data.message.data;
-  // const {username} = JSON.parse(Buffer.from(base64Data, 'base64').toString('utf-8'));
 
-  const username = cloudEvent.data.message.data.username;
-  // console.log(`Hello, ${username}!`);
-
-  // console.log("Mailchimp api key ", process.env.MAILCHIMP_API_KEY);
-  // process.env.MAILCHIMP_API_KEY = "md-yz6F3wdSdOFqPdtTPVQFLQ";
-
-  const mailchimpClient = require("@mailchimp/mailchimp_transactional")(
-    process.env.MAILCHIMP_API_KEY
-  );
-
-  // const protocol = "https"
-  // const domain = "parthadhruv.com";
-  // const port = 3000;
-  // const verifyEndPoint = "user/verifyEmail";
-  // const setValidityEndPoint = "user/setValidity";
-  // const validityMinutes = 2;
-  
   const protocol = process.env.PROTOCOL
   const domain = process.env.DOMAIN;
   const port = process.env.API_PORT;
+  const version = process.env.VERSION;
   const verifyEndPoint = process.env.VERIFY_END_POINT;
   const setValidityEndPoint = process.env.SET_VALIDITY_END_POINT;
-  const validityMinutes = process.env.VALIDITY_MINUTES;
+  const validityMinutes = parseInt(process.env.VALIDITY_MINUTES);
+  const mailChimpAPIKey = process.env.MAILCHIMP_API_KEY;
 
-  const base = `${protocol}://${domain}:${port}`;
+  // The Pub/Sub message is passed as the CloudEvent's data payload.
+  const base64Data = cloudEvent.data.message.data;
+
+  const {username} = JSON.parse(Buffer.from(base64Data, 'base64').toString('utf-8'));
+
+  const mailchimpClient = require("@mailchimp/mailchimp_transactional")(
+    mailChimpAPIKey
+  );
+  
+  const base = `${protocol}://${domain}:${port}/${version}`;
   const url = `${base}/${verifyEndPoint}?username=${username}`;
 
   const html = `<div>
@@ -39,6 +30,9 @@ functions.cloudEvent('triggerUserVerificationEmail', cloudEvent => {
     </div>`
 
   console.log(html);
+
+  const validUpto = new Date();
+  validUpto.setMinutes(validUpto.getMinutes() + validityMinutes);
 
   const messageConfiguration = {
     html,
@@ -51,10 +45,12 @@ functions.cloudEvent('triggerUserVerificationEmail', cloudEvent => {
     ]  
   }
 
-  // console.log(messageConfiguration);
+  console.log(messageConfiguration);
 
   const run = async () => {
+
     const response = await mailchimpClient.messages.send({ message: messageConfiguration });
+
     console.log(response);
 
     if(response[0].status == "sent"){
@@ -65,29 +61,31 @@ functions.cloudEvent('triggerUserVerificationEmail', cloudEvent => {
       // trigger the api call to set the validity date for the user email verification
       const url = `${base}/${setValidityEndPoint}`;
       const options = {
-          method: "PUT", // *GET, POST, PUT, DELETE, etc.
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            // 'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: JSON.stringify({
+          body: {
             validUpto,
             username
-          }), // body data type must match "Content-Type" header
+          },
         };
+
+      console.log(options.body);
+
       const response = await fetch(url, options);
-      console.log("Sent validate link to user ", response);
+      console.log("Set email validity ", response);
     }
   };
 
   // run();
 
-  const test = async () => {
-    const url2 = `${base}/${setValidityEndPoint}?userName=${username}`;
-    console.log(url2);
-    const response = await fetch(url2).catch((err) => console.log(err));
-    console.log("Sent validate link to user ", response); 
-  }
+  // const test = async () => {
+  //   const url2 = `${base}/${setValidityEndPoint}?userName=${username}`;
+  //   console.log(url2);
+  //   const response = await fetch(url2).catch((err) => console.log(err));
+  //   console.log("Sent validate link to user ", response); 
+  // }
 
   // test();
 
