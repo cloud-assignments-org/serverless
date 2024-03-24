@@ -1,0 +1,35 @@
+name: Zip and Push to google cloud
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  push-to-gcloud:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Zip files
+        run: zip ${{ secrets.CLOUD_FUNCTION_SOURCE }}.zip index.js package.json
+
+      - name: Authorize GCP
+        uses: "google-github-actions/auth@v2"
+        with:
+          credentials_json: ${{ secrets.GCP_CLOUD_USER_SA }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: ">= 363.0.0"
+          project_id: ${{ secrets.GCP_CLOUD_USER_SA.project_id }}
+
+      - name: Configure Docker
+        run: |-
+          gcloud auth configure-docker
+
+      - name: Upload to Google Cloud Storage
+        run: |-
+          gsutil cp ${{ secrets.CLOUD_FUNCTION_SOURCE }}.zip gs://${{ secrets.GCP_CLOUD_FUNCTIONS_BUCKET }}/${{ secrets.CLOUD_FUNCTION_SOURCE }}.zip
