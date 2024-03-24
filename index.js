@@ -78,7 +78,7 @@ functions.cloudEvent('triggerUserVerificationEmail', cloudEvent => {
     }
   };
 
-  // run();
+  run();
 
   // const test = async () => {
   //   const url2 = `${base}/${setValidityEndPoint}?userName=${username}`;
