@@ -3,7 +3,9 @@ var pg = require("pg");
 
 // Register a CloudEvent callback with the Functions Framework that will
 // be executed when the Pub/Sub trigger topic receives a message.
-functions.cloudEvent("triggerUserVerificationEmail", (cloudEvent) => {
+functions.cloudEvent("triggerUserVerificationEmail", async (cloudEvent) => {
+  console.log(cloudEvent);
+
   const protocol = process.env.PROTOCOL;
   const domain = process.env.DOMAIN;
   const port = process.env.API_PORT;
@@ -28,6 +30,8 @@ functions.cloudEvent("triggerUserVerificationEmail", (cloudEvent) => {
     Buffer.from(base64Data, "base64").toString("utf-8")
   );
 
+  console.log("username ", username);
+
   const mailchimpClient = require("@mailchimp/mailchimp_transactional")(
     mailChimpAPIKey
   );
@@ -39,11 +43,12 @@ functions.cloudEvent("triggerUserVerificationEmail", (cloudEvent) => {
       Click or copy/paste following link in a new browser window to confirm your email <a href=\"${url}\">Link</a> ${url}
     </div>`;
 
-  console.log(html);
+  // console.log(html);
 
   const validUpto = new Date();
   validUpto.setMinutes(validUpto.getMinutes() + validityMinutes);
 
+  // console.log("valid upto ", validUpto);
   const messageConfiguration = {
     html,
     subject: "User email verification",
@@ -55,38 +60,49 @@ functions.cloudEvent("triggerUserVerificationEmail", (cloudEvent) => {
     ],
   };
 
-  console.log(messageConfiguration);
+  // console.log(messageConfiguration);
 
-  const run = async () => {
-    const response = await mailchimpClient.messages.send({
-      message: messageConfiguration,
-    });
+  // const response = await mailchimpClient.messages.send({
+  //   message: messageConfiguration,
+  // });
 
-    console.log(response);
+  // console.log(response);
 
-    if (response[0].status == "sent") {
-      const validUpto = new Date();
-      validUpto.setMinutes(validUpto.getMinutes() + validityMinutes);
+  // if (response[0].status == "sent") {
+  // await setValidity(username, validUpto);
+  // }
+  // const setValidity = async (username, validity) => {
+  // use pg client to update the db entry
+  const connectionString = `postgres://${dbUserName}:${dbPassword}@${dbIP}:${dbPORT}/${dbName}`;
 
-      await setValidity(username, validUpto);
-    }
-  };
+  console.log("connnection string ", connectionString);
 
-  const setValidity = async (username, validity) => {
-    // use pg client to update the db entry
-    const connectionString = `postgres://${dbUserName}:${dbPassword}@${dbIP}:${dbPORT}/${dbName}`;
-    var pgClient = new pg.Client(connectionString);
-    await pgClient.connect();
+  var pgClient = new pg.Client(connectionString);
+  await pgClient.connect();
 
-    console.log(`UPDATE "user" SET "validity" = ${validity} where "username" = '${username}'`);
+  function convertDateFormat(date) {
+    // Format the date and time components
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const seconds = date.getSeconds().toString().padStart(2, "0");
+    const milliseconds = date.getMilliseconds().toString().padStart(3, "0");
 
+    // Construct the formatted date string
+    const formattedDate = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
 
-    // var queryResult = await pgClient.query(
-    //   `UPDATE "user" SET "validity" = ${validity} where "username" = '${username}'`
-    // );
+    return formattedDate;
+  }
 
-    console.log(queryResult)
-  };
+  const query = `UPDATE "user" SET "validity" = '${convertDateFormat(
+    validUpto
+  )}' where "username" = '${username}'`;
 
-  run();
+  console.log(query);
+
+  var queryResult = await pgClient.query(query);
+
+  console.log(queryResult);
 });
