@@ -40,7 +40,7 @@ functions.cloudEvent("triggerUserVerificationEmail", async (cloudEvent) => {
   const validityToken = randomUUID();
 
   const base = `${protocol}://${domain}:${port}/${version}`;
-  const url = `${base}/${verifyEndPoint}?username=${username}?validityToken=${validityToken}`;
+  const url = `${base}/${verifyEndPoint}?username=${username}&validityToken=${validityToken}`;
 
   const html = `<div>
       Click or copy/paste following link in a new browser window to confirm your email <a href=\"${url}\">Link</a> ${url}
