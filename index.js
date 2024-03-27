@@ -2,6 +2,11 @@ const functions = require("@google-cloud/functions-framework");
 const pg = require("pg");
 const randomUUID = require("crypto").randomUUID;
 
+const formData = require('form-data');
+const Mailgun = require('mailgun.js');
+const mailgun = new Mailgun(formData);
+const mg = mailgun.client({username: 'api', key: process.env.MAILGUN_API_KEY || 'key-yourkeyhere'});
+
 // Register a CloudEvent callback with the Functions Framework that will
 // be executed when the Pub/Sub trigger topic receives a message.
 functions.cloudEvent("triggerUserVerificationEmail", async (cloudEvent) => {
@@ -33,9 +38,9 @@ functions.cloudEvent("triggerUserVerificationEmail", async (cloudEvent) => {
 
   console.log("username ", username);
 
-  const mailchimpClient = require("@mailchimp/mailchimp_transactional")(
-    mailChimpAPIKey
-  );
+  // const mailchimpClient = require("@mailchimp/mailchimp_transactional")(
+  //   mailChimpAPIKey
+  // );
 
   const validityToken = randomUUID();
 
@@ -52,22 +57,32 @@ functions.cloudEvent("triggerUserVerificationEmail", async (cloudEvent) => {
   validUpto.setMinutes(validUpto.getMinutes() + validityMinutes);
 
   // console.log("valid upto ", validUpto);
-  const messageConfiguration = {
-    html,
-    subject: "User email verification",
-    from_email: "dhruv@parthadhruv.com",
-    to: [
-      {
-        email: `${username}`,
-      },
-    ],
-  };
+  // const messageConfiguration = {
+  //   html,
+  //   subject: "User email verification",
+  //   from_email: "dhruv@parthadhruv.com",
+  //   to: [
+  //     {
+  //       email: `${username}`,
+  //     },
+  //   ],
+  // };
 
-  console.log(messageConfiguration);
+  // console.log(messageConfiguration);
 
-  const response = await mailchimpClient.messages.send({
-    message: messageConfiguration,
-  });
+  // const response = await mailchimpClient.messages.send({
+  //   message: messageConfiguration,
+  // });
+
+  mg.messages.create('parthadhruv.com', {
+    from: "Excited User <mailgun@parthadhruv.com>",
+    to: ["parthadhruv@gmail.com"],
+    subject: "Hello",
+    text: "Testing some Mailgun awesomeness!",
+    html: "<h1>Testing some Mailgun awesomeness!</h1>"
+  })
+  .then(msg => console.log(msg)) // logs response data
+  .catch(err => console.log(err)); // logs any error  
 
   if (response[0].status == "sent") {
     // use pg client to update the db entry
