@@ -38,8 +38,10 @@ functions.cloudEvent("triggerUserVerificationEmail", async (cloudEvent) => {
     mailChimpAPIKey
   );
 
+  const validityToken = randomUUID();
+
   const base = `${protocol}://${domain}:${port}/${version}`;
-  const url = `${base}/${verifyEndPoint}?username=${username}`;
+  const url = `${base}/${verifyEndPoint}?username=${username}?validityToken=${validityToken}`;
 
   const html = `<div>
       Click or copy/paste following link in a new browser window to confirm your email <a href=\"${url}\">Link</a> ${url}
@@ -92,9 +94,10 @@ functions.cloudEvent("triggerUserVerificationEmail", async (cloudEvent) => {
   
       return formattedDate;
     }
+    
     const query = `UPDATE "user" SET "validity" = '${convertDateFormat(
       validUpto
-    )}', "validityToken" ='${randomUUID()}' where "username" = '${username}'`;
+    )}', "validityToken" ='${validityToken}' where "username" = '${username}'`;
   
     console.log(query);
   
