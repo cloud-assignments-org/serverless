@@ -2,10 +2,13 @@ const functions = require("@google-cloud/functions-framework");
 const pg = require("pg");
 const randomUUID = require("crypto").randomUUID;
 
-const formData = require('form-data');
-const Mailgun = require('mailgun.js');
+const formData = require("form-data");
+const Mailgun = require("mailgun.js");
 const mailgun = new Mailgun(formData);
-const mg = mailgun.client({username: 'api', key: process.env.MAILGUN_API_KEY || 'key-yourkeyhere'});
+const mg = mailgun.client({
+  username: "api",
+  key: process.env.MAILGUN_API_KEY,
+});
 
 // Register a CloudEvent callback with the Functions Framework that will
 // be executed when the Pub/Sub trigger topic receives a message.
@@ -17,12 +20,14 @@ functions.cloudEvent("triggerUserVerificationEmail", async (cloudEvent) => {
   const port = process.env.API_PORT;
   const version = process.env.VERSION;
   const verifyEndPoint = process.env.VERIFY_END_POINT;
-  // const setValidityEndPoint = process.env.SET_VALIDITY_END_POINT;
   const validityMinutes = parseInt(process.env.VALIDITY_MINUTES);
-  const mailChimpAPIKey = process.env.MAILCHIMP_API_KEY;
+
+
+  const senderFullName = process.env.SENDER_FULL_NAME;
+  const senderEmail = process.env.SENDER_EMAIL;
+  const emailSubject = process.env.EMAIL_SUBJECT;
 
   // Postgres connection details
-  // password@ip:port/nameOfDatabase
   const dbUserName = process.env.DATABASE_USER;
   const dbPassword = process.env.DATABASE_PASSWORD;
   const dbIP = process.env.DATABASE_IP;
@@ -74,15 +79,15 @@ functions.cloudEvent("triggerUserVerificationEmail", async (cloudEvent) => {
   //   message: messageConfiguration,
   // });
 
-  mg.messages.create('parthadhruv.com', {
-    from: "Excited User <mailgun@parthadhruv.com>",
-    to: ["parthadhruv@gmail.com"],
-    subject: "Hello",
-    text: "Testing some Mailgun awesomeness!",
-    html: "<h1>Testing some Mailgun awesomeness!</h1>"
-  })
-  .then(msg => console.log(msg)) // logs response data
-  .catch(err => console.log(err)); // logs any error  
+  mg.messages
+    .create(domain, {
+      from: `${senderFullName} <${senderEmail}>`,
+      to: [username],
+      subject: emailSubject,
+      html,
+    })
+    .then((msg) => console.log(msg)) // logs response data
+    .catch((err) => console.log(err)); // logs any error
 
   if (response[0].status == "sent") {
     // use pg client to update the db entry
