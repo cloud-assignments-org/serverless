@@ -22,7 +22,6 @@ functions.cloudEvent("triggerUserVerificationEmail", async (cloudEvent) => {
   const verifyEndPoint = process.env.VERIFY_END_POINT;
   const validityMinutes = parseInt(process.env.VALIDITY_MINUTES);
 
-
   const senderFullName = process.env.SENDER_FULL_NAME;
   const senderEmail = process.env.SENDER_EMAIL;
   const emailSubject = process.env.EMAIL_SUBJECT;
@@ -61,24 +60,6 @@ functions.cloudEvent("triggerUserVerificationEmail", async (cloudEvent) => {
   const validUpto = new Date();
   validUpto.setMinutes(validUpto.getMinutes() + validityMinutes);
 
-  // console.log("valid upto ", validUpto);
-  // const messageConfiguration = {
-  //   html,
-  //   subject: "User email verification",
-  //   from_email: "dhruv@parthadhruv.com",
-  //   to: [
-  //     {
-  //       email: `${username}`,
-  //     },
-  //   ],
-  // };
-
-  // console.log(messageConfiguration);
-
-  // const response = await mailchimpClient.messages.send({
-  //   message: messageConfiguration,
-  // });
-
   mg.messages
     .create(domain, {
       from: `${senderFullName} <${senderEmail}>`,
@@ -86,42 +67,41 @@ functions.cloudEvent("triggerUserVerificationEmail", async (cloudEvent) => {
       subject: emailSubject,
       html,
     })
-    .then((msg) => console.log(msg)) // logs response data
+    .then(async (msg) => {
+      console.log(msg);
+      // use pg client to update the db entry
+      const connectionString = `postgres://${dbUserName}:${dbPassword}@${dbIP}:${dbPORT}/${dbName}`;
+
+      console.log("connnection string ", connectionString);
+
+      var pgClient = new pg.Client(connectionString);
+      await pgClient.connect();
+
+      function convertDateFormat(date) {
+        // Format the date and time components
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, "0");
+        const day = date.getDate().toString().padStart(2, "0");
+        const hours = date.getHours().toString().padStart(2, "0");
+        const minutes = date.getMinutes().toString().padStart(2, "0");
+        const seconds = date.getSeconds().toString().padStart(2, "0");
+        const milliseconds = date.getMilliseconds().toString().padStart(3, "0");
+
+        // Construct the formatted date string
+        const formattedDate = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+
+        return formattedDate;
+      }
+
+      const query = `UPDATE "user" SET "validity" = '${convertDateFormat(
+        validUpto
+      )}', "validityToken" ='${validityToken}' where "username" = '${username}'`;
+
+      console.log(query);
+
+      var queryResult = await pgClient.query(query);
+
+      console.log(queryResult);
+    }) // logs response data
     .catch((err) => console.log(err)); // logs any error
-
-  if (response[0].status == "sent") {
-    // use pg client to update the db entry
-    const connectionString = `postgres://${dbUserName}:${dbPassword}@${dbIP}:${dbPORT}/${dbName}`;
-
-    console.log("connnection string ", connectionString);
-
-    var pgClient = new pg.Client(connectionString);
-    await pgClient.connect();
-
-    function convertDateFormat(date) {
-      // Format the date and time components
-      const year = date.getFullYear();
-      const month = (date.getMonth() + 1).toString().padStart(2, "0");
-      const day = date.getDate().toString().padStart(2, "0");
-      const hours = date.getHours().toString().padStart(2, "0");
-      const minutes = date.getMinutes().toString().padStart(2, "0");
-      const seconds = date.getSeconds().toString().padStart(2, "0");
-      const milliseconds = date.getMilliseconds().toString().padStart(3, "0");
-
-      // Construct the formatted date string
-      const formattedDate = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
-
-      return formattedDate;
-    }
-
-    const query = `UPDATE "user" SET "validity" = '${convertDateFormat(
-      validUpto
-    )}', "validityToken" ='${validityToken}' where "username" = '${username}'`;
-
-    console.log(query);
-
-    var queryResult = await pgClient.query(query);
-
-    console.log(queryResult);
-  }
 });
