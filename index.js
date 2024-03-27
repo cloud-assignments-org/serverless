@@ -1,7 +1,6 @@
 const functions = require("@google-cloud/functions-framework");
 const pg = require("pg");
-const randomUUID =  require('crypto').randomUUID;
-
+const randomUUID = require("crypto").randomUUID;
 
 // Register a CloudEvent callback with the Functions Framework that will
 // be executed when the Pub/Sub trigger topic receives a message.
@@ -73,12 +72,12 @@ functions.cloudEvent("triggerUserVerificationEmail", async (cloudEvent) => {
   if (response[0].status == "sent") {
     // use pg client to update the db entry
     const connectionString = `postgres://${dbUserName}:${dbPassword}@${dbIP}:${dbPORT}/${dbName}`;
-  
+
     console.log("connnection string ", connectionString);
-  
+
     var pgClient = new pg.Client(connectionString);
     await pgClient.connect();
-  
+
     function convertDateFormat(date) {
       // Format the date and time components
       const year = date.getFullYear();
@@ -88,22 +87,21 @@ functions.cloudEvent("triggerUserVerificationEmail", async (cloudEvent) => {
       const minutes = date.getMinutes().toString().padStart(2, "0");
       const seconds = date.getSeconds().toString().padStart(2, "0");
       const milliseconds = date.getMilliseconds().toString().padStart(3, "0");
-  
+
       // Construct the formatted date string
       const formattedDate = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
-  
+
       return formattedDate;
     }
-    
+
     const query = `UPDATE "user" SET "validity" = '${convertDateFormat(
       validUpto
     )}', "validityToken" ='${validityToken}' where "username" = '${username}'`;
-  
+
     console.log(query);
-  
+
     var queryResult = await pgClient.query(query);
-  
+
     console.log(queryResult);
   }
-
 });
