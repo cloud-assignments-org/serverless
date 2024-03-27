@@ -1,5 +1,7 @@
 const functions = require("@google-cloud/functions-framework");
-var pg = require("pg");
+const pg = require("pg");
+const randomUUID =  require('crypto').randomUUID;
+
 
 // Register a CloudEvent callback with the Functions Framework that will
 // be executed when the Pub/Sub trigger topic receives a message.
@@ -90,10 +92,9 @@ functions.cloudEvent("triggerUserVerificationEmail", async (cloudEvent) => {
   
       return formattedDate;
     }
-  
     const query = `UPDATE "user" SET "validity" = '${convertDateFormat(
       validUpto
-    )}' where "username" = '${username}'`;
+    )}', "validityToken" ='${randomUUID()}' where "username" = '${username}'`;
   
     console.log(query);
   
