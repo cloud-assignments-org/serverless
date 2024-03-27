@@ -102,6 +102,15 @@ functions.cloudEvent("triggerUserVerificationEmail", async (cloudEvent) => {
       var queryResult = await pgClient.query(query);
 
       console.log(queryResult);
+
+      await pgClient
+        .end()
+        .then(() => {
+          console.log("Connection to PostgreSQL closed");
+        })
+        .catch((err) => {
+          console.error("Error closing connection", err);
+        });
     }) // logs response data
     .catch((err) => console.log(err)); // logs any error
 });
