@@ -1,7 +1,7 @@
 {
     "dependencies": {
-      "@google-cloud/functions-framework":  "^3.0.0",
-      "@mailchimp/mailchimp_transactional": "1.0.59"
+        "@google-cloud/functions-framework": "^3.0.0",
+        "@mailchimp/mailchimp_transactional": "1.0.59",
+        "pg": "^8.11.3"
     }
-  }
-  
+}
